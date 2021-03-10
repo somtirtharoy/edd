@@ -2,10 +2,10 @@ import pytest
 
 from edd import TestCase
 from edd.profile.factory import UserFactory
-from main import models
+from main import models, reporting
 from main.tests import factory as main_factory
 
-from .. import exceptions, reporting
+from .. import exceptions
 from ..broker import LoadRequest
 from ..executor import ImportExecutor
 

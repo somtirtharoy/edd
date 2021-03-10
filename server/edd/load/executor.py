@@ -9,9 +9,9 @@ from django.db.models import Count, Q
 from django.utils.translation import gettext_lazy as _
 
 from edd.notify.backend import RedisBroker
-from main import models
+from main import models, reporting
 
-from . import exceptions, reporting
+from . import exceptions
 from .broker import LoadRequest
 from .notify import WsBroker
 

@@ -8,9 +8,9 @@ from django.template.loader import get_template
 from django.utils.translation import gettext as _
 
 from edd.notify.backend import RedisBroker
-from main import models, query
+from main import models, query, reporting
 
-from . import exceptions, reporting
+from . import exceptions
 from .broker import ImportBroker, LoadRequest
 from .executor import DispatchHelper, ImportExecutor
 from .models import Category

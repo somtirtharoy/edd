@@ -10,9 +10,9 @@ from django.db.models import Count, Q
 from django.utils.translation import gettext_lazy as _
 
 from edd.utilities import JSONEncoder
-from main import models
+from main import models, reporting
 
-from . import exceptions, reporting
+from . import exceptions
 from .broker import ImportBroker, LoadRequest
 from .parsers import MeasurementParseRecord, ParseResult, build_src_summary
 

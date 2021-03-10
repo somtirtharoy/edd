@@ -13,7 +13,9 @@ from django.utils.translation import gettext_lazy as _
 from openpyxl import load_workbook
 from openpyxl.utils.cell import get_column_letter
 
-from .. import exceptions, reporting
+from main import reporting
+
+from .. import exceptions
 
 logger = logging.getLogger(__name__)
 

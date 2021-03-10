@@ -3,7 +3,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.test import override_settings
 
-from .. import exceptions, reporting
+from main import reporting
+
+from .. import exceptions
 from ..broker import ImportBroker, LoadRequest
 
 

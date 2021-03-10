@@ -5,8 +5,9 @@ from django.utils.translation import gettext_lazy as _
 
 from edd.fields import VarCharField
 from main import models as edd_models
+from main import reporting
 
-from . import exceptions, reporting
+from . import exceptions
 
 
 class Layout(models.Model):

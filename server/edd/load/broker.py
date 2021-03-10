@@ -10,9 +10,9 @@ from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 from django_redis import get_redis_connection
 
-from main import models, redis
+from main import models, redis, reporting
 
-from . import exceptions, reporting
+from . import exceptions
 from .models import ParserMapping
 
 logger = logging.getLogger(__name__)

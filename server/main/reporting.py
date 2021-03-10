@@ -1,11 +1,12 @@
 import logging
 import typing
+import uuid
 from contextlib import contextmanager
 
 from edd import receiver
 
 from . import exceptions
-from .exceptions.core import MessagingMixin
+from .exceptions import MessagingMixin
 from .signals import errors_reported, warnings_reported
 
 logger = logging.getLogger(__name__)
@@ -13,9 +14,9 @@ logger = logging.getLogger(__name__)
 # type aliases
 StrTriple = typing.Tuple[str, str, str]
 Aggregate = typing.Dict[StrTriple, MessagingMixin]
-MaybeError = typing.Optional[exceptions.EDDImportError]
-MaybeErrorType = typing.Optional[typing.Type[exceptions.EDDImportError]]
-MaybeWarningType = typing.Optional[typing.Type[exceptions.EDDImportWarning]]
+MaybeError = typing.Optional[exceptions.EDDReportableError]
+MaybeErrorType = typing.Optional[typing.Type[exceptions.EDDReportableError]]
+MaybeWarningType = typing.Optional[typing.Type[exceptions.EDDReportableWarning]]
 MaybeTrackedType = typing.Optional[typing.Type[MessagingMixin]]
 TrackingId = typing.Union["uuid.UUID", str]
 MessageSummary = typing.Dict[str, typing.List[typing.Any]]
@@ -23,7 +24,7 @@ MessageSummary = typing.Dict[str, typing.List[typing.Any]]
 
 class MessageAggregator:
     """
-    Tracks errors and warnings that occur during the import process.
+    Tracks errors and warnings that occur during a workflow.
 
     Client code controls when or whether errors are raised. Multiple Exception
     instances can be created or caught, added to this API, then dealt with
@@ -41,7 +42,7 @@ class MessageAggregator:
         # both
         return msgs.category, msgs.subcategory, msgs.summary
 
-    def add_errors(self, errs: exceptions.EDDImportError):
+    def add_errors(self, errs: exceptions.EDDReportableError):
         """
         Adds errors represented by the Exception parameter.
 
@@ -57,14 +58,14 @@ class MessageAggregator:
         key = self._key(errs)
         self._latest_error = self._errors.get(key)
 
-    def add_warnings(self, warns: exceptions.EDDImportWarning):
+    def add_warnings(self, warns: exceptions.EDDReportableWarning):
         """
-        Adds warning represented by the EDDImportWarning parameter.
+        Adds warning represented by the EDDReportableWarning parameter.
 
         Warnings with the same category, subcategory, and summary are merged
         together internally.
 
-        :param warns: an EDDImportWarning representing one or more occurrences
+        :param warns: an EDDReportableWarning representing one or more occurrences
             of an error. A reference to this parameter is kept internally and
             may be modified by subsequent warning reports.
         """
@@ -90,7 +91,7 @@ class MessageAggregator:
         the latest one captured in the parameter.
 
         :param errs: an optional Exception representing one ore more error occurrences
-        :raises EDDImportError if any errors have been reported
+        :raises EDDUserError if any errors have been reported
         """
         if self._latest_error:
             raise self._latest_error
@@ -122,9 +123,9 @@ class MessageAggregator:
         return summary
 
 
-def add_errors(key: TrackingId, errs: exceptions.EDDImportError):
+def add_errors(key: TrackingId, errs: exceptions.EDDReportableError):
     """
-    Reports one or more error occurrences from an EDDImportError exception.
+    Reports one or more error occurrences from an EDDReportableError exception.
 
     This method is intended for use in stateful message tracking, so the
     Exception parameter will be raised immediately if message tracking is not
@@ -138,7 +139,7 @@ def add_errors(key: TrackingId, errs: exceptions.EDDImportError):
     the edd.load.signals.errors_reported signal.
 
     :param key: unique key for this workflow (e.g. the UUID for a single import)
-    :param errs: EDDImportError instance representing one or more error occurrences
+    :param errs: EDDReportableError instance representing one or more error occurrences
     """
     # if UUID incoming, force to string
     key = str(key)
@@ -150,9 +151,9 @@ def add_errors(key: TrackingId, errs: exceptions.EDDImportError):
         raise errs
 
 
-def warnings(key: TrackingId, warns: exceptions.EDDImportWarning):
+def warnings(key: TrackingId, warns: exceptions.EDDReportableWarning):
     """
-    Reports one or more warning occurrences from an EDDImportWarning exception.
+    Reports one or more warning occurrences from an EDDReportableWarning exception.
 
     By default, warnings reported here are only logged and no further action is
     taken. Clients may also call tracker() to turn on error and warning
@@ -163,7 +164,7 @@ def warnings(key: TrackingId, warns: exceptions.EDDImportWarning):
     the edd.load.signals.warnings_reported signal.
 
     :param key: the unique key for this workflow (e.g. the UUID for a single import)
-    :param warns: EDDImportWarning instance representing one or more warning occurrences
+    :param warns: EDDReportableWarning instance representing one or more warning occurrences
     """
     # if UUID incoming, force to string
     key = str(key)
@@ -182,9 +183,9 @@ def raise_errors(key: TrackingId, errors: MaybeError = None):
     parameter is to print a warning message.
 
     :param key: the unique key that identifies this workflow
-        (e.g. the UUID for a single import)
-    :param errors: an optional EDDImportError instance
-    :raises EDDImportException: if any tracked errors are stored,
+        (e.g. the UUID for a single workflow)
+    :param errors: an optional EDDReportableError instance
+    :raises EDDReportableException: if any tracked errors are stored,
         including the parameter to this call
     """
     key = str(key)
@@ -237,7 +238,7 @@ def error_count(key: TrackingId, err_class: MaybeErrorType = None) -> int:
     Tests the number of unique error types that have been reported for this workflow.
 
     Unique categories are defined by the combination of (category, subcategory,
-    summary) for EDDImportException classes. See also MessageAggregator._key().
+    summary) for EDDReportableException classes. See also MessageAggregator._key().
     THIS FUNCTION IS INTERNAL API, AND MAY CHANGE IN FUTURE RELEASES.
 
     :param key: the unique key that identifies this workflow
@@ -248,7 +249,7 @@ def error_count(key: TrackingId, err_class: MaybeErrorType = None) -> int:
     try:
         return _tracked_msgs[str(key)].error_count(err_class)
     except KeyError as e:
-        raise exceptions.LoadError(f"Not tracking for {key}") from e
+        raise exceptions.EDDError(f"Not tracking for {key}") from e
 
 
 def warning_count(key: TrackingId, warn_class: MaybeWarningType = None) -> int:
@@ -267,7 +268,7 @@ def warning_count(key: TrackingId, warn_class: MaybeWarningType = None) -> int:
     try:
         return _tracked_msgs[str(key)].warn_count(warn_class)
     except KeyError as e:
-        raise exceptions.LoadError(f"Not tracking for {key}") from e
+        raise exceptions.EDDError(f"Not tracking for {key}") from e
 
 
 def build_messages_summary(key: TrackingId) -> MessageSummary:

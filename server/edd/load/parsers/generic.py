@@ -1,8 +1,8 @@
 from uuid import UUID
 
 from main.models import Measurement
+from main.reporting import raise_errors
 
-from ..reporting import raise_errors
 from .core import (
     CsvParserMixin,
     ExcelParserMixin,

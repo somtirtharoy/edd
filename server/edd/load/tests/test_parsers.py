@@ -2,8 +2,10 @@ from uuid import uuid4
 
 import pytest
 
-from .. import exceptions, parsers, reporting
-from ..signals import warnings_reported
+from main import reporting
+from main.signals import warnings_reported
+
+from .. import exceptions, parsers
 from . import factory
 
 

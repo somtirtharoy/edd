@@ -12,8 +12,7 @@ class LoadConfig(AppConfig):
         # to make certain signal handlers are defined at the correct time
 
         # make sure to load/register all the signal handlers
-        from . import signals  # noqa: F401
-        from . import reporting  # noqa: F401
+        from main import reporting  # noqa: F401
 
         # plug into the REST API
         from .rest import views

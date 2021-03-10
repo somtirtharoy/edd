@@ -1,12 +1,6 @@
 """Module contains exceptions for edd.load."""
 
-from .core import (
-    EDDImportError,
-    EDDImportWarning,
-    InvalidLoadRequestError,
-    LoadError,
-    ReportingLimitWarning,
-)
+from .core import EDDImportError, EDDImportWarning, InvalidLoadRequestError, LoadError
 from .execute import ExecutionError, ExecutionWarning, UnplannedOverwriteError
 from .parse import (
     BadParserError,
@@ -71,7 +65,6 @@ __all__ = [
     "OverdeterminedTimeError",
     "OverwriteWarning",
     "ParseError",
-    "ReportingLimitWarning",
     "RequiredColumnError",
     "RequiredValueError",
     "ResolveError",
