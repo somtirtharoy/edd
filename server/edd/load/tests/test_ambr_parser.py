@@ -15,3 +15,7 @@ def test_AmbrExcelParser_success():
         parsed = parser.parse(file)
 
     assert len(parsed) == 24
+
+
+def test_process_ambr_data():   
+    pass

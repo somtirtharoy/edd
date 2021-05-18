@@ -641,6 +641,37 @@ class ExcelParserMixin:
         return val
 
 
+class MultiSheetExcelParserMixin:
+    def parse(self, file):
+        """
+        Parses the input as an Excel workbook.
+
+        :param file: a file-like object
+        :return: the ParseResult read from file, otherwise None
+        :raises OSError: if the file can't be opened
+        :raises EDDImportError: if the file format or content is bad
+        """
+        wb = load_workbook(file, read_only=True, data_only=True)
+        logger.debug("In parse(). workbook has %d sheets" % len(wb.worksheets))
+
+        for worksheet in wb.worksheets:
+            return self._parse_rows(worksheet.iter_rows())
+
+    # NOTE: remove this
+    def _raw_cell_value(self, cell):
+        """
+        Gets the raw cell value in whatever format it was stored in the file.
+
+        :param cell: the cell
+        :return: the cell value, with leading and trailing whitespace stripped
+            if the content was a string
+        """
+        val = cell.value
+        if isinstance(val, str):
+            return val.strip()
+        return val
+
+
 class CsvParserMixin:
     def parse(self, file):
         """
