@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from edd.notify.backend import RedisBroker
+from main.signals import study_exported, study_worklist
 
 from . import forms
 from .broker import ExportBroker
@@ -50,6 +51,7 @@ def export_table_task(self, user_id, param_path):
             )
             notifications.notify(message)
         notifications.mark_read(self.request.id)
+        return export_id
     except Exception as e:
         logger.exception("Failure in export_table_task: %s", e)
         raise RuntimeError(
@@ -66,10 +68,18 @@ def execute_export_table(broker, user, export_id, param_path):
     ).options
     # create and persist the export object
     export = TableExport(selection, options)
-    broker.save_export(export_id, selection.studies[0].name, export)
+    first_study = selection.studies[0]
+    broker.save_export(export_id, first_study.name, export)
     # no longer need the param data
     broker.clear_params(param_path)
-    return selection.studies[0].name
+    study_exported.send(
+        sender=TableExport,
+        study=first_study,
+        user=user,
+        count=selection.lines.count(),
+        cross=selection.studies.count() > 1,
+    )
+    return first_study.name
 
 
 @shared_task(bind=True)
@@ -105,6 +115,7 @@ def export_worklist_task(self, user_id, param_path):
             )
             notifications.notify(message)
         notifications.mark_read(self.request.id)
+        return export_id
     except Exception as e:
         logger.exception("Failure in export_worklist_task: %s", e)
         raise RuntimeError(
@@ -118,7 +129,15 @@ def execute_export_worklist(broker, user, export_id, param_path):
     worklist_def = forms.WorklistForm(data=params)
     # create worklist object
     export = WorklistExport(selection, worklist_def.options, worklist_def.worklist)
-    broker.save_export(export_id, selection.studies[0].name, export)
+    first_study = selection.studies[0]
+    broker.save_export(export_id, first_study.name, export)
     # no longer need the param data
     broker.clear_params(param_path)
-    return selection.studies[0].name
+    study_worklist.send(
+        sender=WorklistExport,
+        study=first_study,
+        user=user,
+        count=selection.lines.count(),
+        cross=selection.studies.count() > 1,
+    )
+    return first_study.name

@@ -212,8 +212,17 @@ class ServiceComposer:
         # bundle ice when no url provided
         if url is None:
             ice = self.define("ice")
-            # TODO: generate password for ICE postgres database
             url = "http://ice:8080/"
+            db_password = password(18)
+            ice.write_property(
+                "services.ice_db.environment.POSTGRES_PASSWORD", db_password
+            )
+            opts = [
+                "-Dice.db.url=jdbc:postgresql://ice_db/ice",
+                "-Dice.db.user=iceuser",
+                f"-Dice.db.pass={db_password}",
+            ]
+            ice.write_env("CATALINA_OPTS", " ".join(opts))
             # existing HMAC code depends on canonical base64 encoding
             # cannot use the urlsafe variants
             hmac = password(63, urlsafe=False)
@@ -257,9 +266,8 @@ class ServiceComposer:
             postgres = self.define("postgres")
             # create edduser password to postgres
             db_password = password(18)
-            # nothing else needs the postgres user password
-            postgres.write_secret("POSTGRES_PASSWORD", password(18))
-            postgres.write_secret("EDD_PGPASS", db_password)
+            postgres.write_secret("POSTGRES_PASSWORD", db_password)
+            # add db URLs to other services
             db_url = f"postgresql://edduser:{db_password}@postgres:5432/edd"
             celery = f"db+postgresql://edduser:{db_password}@postgres:5432/edd"
             for service_name in ("http", "websocket", "worker"):

@@ -87,7 +87,8 @@ SECRET_KEY = env(
         "this only works for local variables",
     ),
 )
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost"]
+DEFAULT_EXCEPTION_REPORTER_FILTER = "edd.SafeExceptionReporterFilter"
 SITE_ID = 1
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -131,6 +132,7 @@ INSTALLED_APPS = (
     "edd.branding.apps.BrandingConfig",
     "edd.campaign.apps.CampaignConfig",
     "edd.search.apps.SearchConfig",
+    "edd.metric.apps.MetricConfig",
 )
 MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -172,6 +174,7 @@ WSGI_APPLICATION = "edd.wsgi.application"
 # Database configuration
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 DATABASES = {"default": env.db()}
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 
 # Cache configuration
@@ -215,7 +218,7 @@ SWAGGER_SETTINGS = {
 
 
 # WebSockets / Channels
-ASGI_APPLICATION = "edd.routing.application"
+ASGI_APPLICATION = "edd.asgi.application"
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -277,6 +280,14 @@ with open("/edd.hash") as f:
     EDD_VERSION_HASH = f.read().strip()
 STATIC_ROOT = "/var/www/static"
 STATIC_URL = "/static/"
+STATICFILES_DIRS = [
+    "/usr/local/edd-static",
+]
+# omit AppDirectoriesFinder for runtime settings
+# these will already be in /usr/local/edd-static during Docker build
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+]
 STATICFILES_MANIFEST = f"staticfiles.{EDD_VERSION_HASH}.json"
 STATICFILES_STORAGE = "edd.utilities.StaticFilesStorage"
 

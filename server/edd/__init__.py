@@ -61,13 +61,14 @@ class TestCase(DjangoTestCase):
         super().tearDown()
 
 
-def monkey_patch_cleanse_setting():
-    # monkey-patch django.views.debug.cleanse_setting to check for CELERY_RESULT_BACKEND
-    _cleanse_setting = debug.cleanse_setting
+class SafeExceptionReporterFilter(debug.SafeExceptionReporterFilter):
+    url_settings = re.compile(r"URL|BACKEND")
 
-    def cleanse_setting(key, value):
-        cleansed = _cleanse_setting(key, value)
-        if HIDDEN_SETTING.search(key):
+    def cleanse_setting(self, key, value):
+        # use the base implementation
+        cleansed = super().cleanse_setting(key, value)
+        # if the setting is a URL, try to parse it and replace any password
+        if self.url_settings.search(key):
             try:
                 parsed = None
                 if isinstance(value, str):
@@ -76,15 +77,13 @@ def monkey_patch_cleanse_setting():
                     # urlparse returns a read-only tuple, use a list to rewrite parts
                     parsed_list = list(parsed)
                     parsed_list[1] = parsed.netloc.replace(
-                        f":{parsed.password}", ":**********", 1
+                        f":{parsed.password}", f":{self.cleansed_substitute}", 1
                     )
                     # put Humpty Dumpty back together again
                     cleansed = urlunparse(parsed_list)
             except Exception:
                 logger.exception("Exception cleansing URLs for error reporting")
         return cleansed
-
-    debug.cleanse_setting = cleanse_setting
 
 
 def monkey_patch_mail():
@@ -136,9 +135,24 @@ def monkey_patch_postgres_wrapper():
     )
 
 
-monkey_patch_cleanse_setting()
+def monkey_patch_requests_timeout():
+    import requests
+
+    base_send = requests.Session.send
+
+    def send(*args, **kwargs):
+        # if no explicit timeout is set, use 10 seconds connect/read timeouts
+        if kwargs.get("timeout", None) is None:
+            kwargs["timeout"] = (10, 10)
+        return base_send(*args, **kwargs)
+
+    send.__doc__ = base_send.__doc__
+    requests.Session.send = send
+
+
 monkey_patch_mail()
 monkey_patch_postgres_wrapper()
+monkey_patch_requests_timeout()
 
 
 __all__ = ("celery_app", "receiver", "TestCase")

@@ -145,14 +145,12 @@ export class Filter extends FilterLayer {
      */
     update(payload: AssayValues): void {
         this.access.updateAssayValues(payload);
-        const categories = payload.measures.map(
-            (value): MeasurementClass => {
-                return {
-                    "compartment": this.access.findCompartment(value.comp),
-                    "measurementType": this.access.findMeasurementType(value.type),
-                };
-            },
-        );
+        const categories = payload.measures.map((value): MeasurementClass => {
+            return {
+                "compartment": this.access.findCompartment(value.comp),
+                "measurementType": this.access.findMeasurementType(value.type),
+            };
+        });
         // pass to measurementLayer so it can update its options
         this.measurementLayer.update(categories);
     }
@@ -587,7 +585,7 @@ class ProteinSection extends MeasurementFilterSection {
         const t = value.measurementType;
         let link = "";
         if (t.accession) {
-            link = `<a href="https://ebi10.uniprot.org/uniprot/${t.accession}"
+            link = `<a href="https://www.uniprot.org/uniprot/${t.accession}"
                 target="_blank">${t.accession}</a>`;
         }
         return `${value.compartment.code} ${t.name} ${link}`.trim();

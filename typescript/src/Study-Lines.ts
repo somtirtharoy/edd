@@ -31,10 +31,15 @@ let hot: Handsontable;
 function computeHeight() {
     const container = $("#studyLinesTable");
     const actionsBar = $("#actionsBar");
+    // vertical size to leave enough space for actionsBar to display buttons
     const vertical = $window.height() - container.offset().top - actionsBar.height();
+    // also include a fudge factor:
+    // + 24 pixels for "Report a Bug", to not overlap on buttons
+    // + 10 + 10 for top/bottom margins around actionsBar
+    // = 44 total pixels
+    const fudge = 44;
     // always reserve at least 500 pixels
-    // also include a fudge factor of 20 pixels
-    return Math.max(500, vertical - 20);
+    return Math.max(500, vertical - fudge);
 }
 
 function defineSelectionInputs(lines?: LineRecord[]): JQuery {
@@ -320,8 +325,6 @@ function setupTable() {
 function showLineEditDialog(lines: LineRecord[]): void {
     let titleText: string;
     let record: LineRecord;
-    let contact: Utl.EDDContact;
-    let experimenter: Utl.EDDContact;
 
     // Update the dialog title and fetch selection info
     if (lines.length === 0) {
@@ -333,8 +336,6 @@ function showLineEditDialog(lines: LineRecord[]): void {
             titleText = $("#edit_line_title").text();
         }
         record = access.mergeLines(lines);
-        contact = new Utl.EDDContact(record.contact);
-        experimenter = new Utl.EDDContact(record.experimenter);
     }
     lineModal.dialog({ "title": titleText });
 
@@ -348,30 +349,30 @@ function showLineEditDialog(lines: LineRecord[]): void {
         lineModal.find("[name=line-contact_1"),
         "contact",
     );
-    contactField.render((): Pair => [contact.display(), str(contact.id())]);
+    contactField.render((r: LineRecord): Pair => {
+        const contact = new Utl.EDDContact(r.contact);
+        return [contact.display(), str(contact.id())];
+    });
     const experimenterField = new Forms.Autocomplete(
         lineModal.find("[name=line-experimenter_0"),
         lineModal.find("[name=line-experimenter_1"),
         "experimenter",
     );
-    experimenterField.render(
-        (): Pair => [experimenter.display(), str(experimenter.id())],
-    );
+    experimenterField.render((r: LineRecord): Pair => {
+        const experimenter = new Utl.EDDContact(r.experimenter);
+        return [experimenter.display(), str(experimenter.id())];
+    });
     const strainField = new Forms.Autocomplete(
         lineModal.find("[name=line-strains_0"),
         lineModal.find("[name=line-strains_1"),
         "strain",
     );
-    strainField.render(
-        (r): Pair => {
-            const list = r.strain || [];
-            const names = list.map((v) => Utl.lookup(EDDData.Strains, v).name || "--");
-            const uuids = list.map(
-                (v) => Utl.lookup(EDDData.Strains, v).registry_id || "",
-            );
-            return [names.join(", "), uuids.join(",")];
-        },
-    );
+    strainField.render((r): Pair => {
+        const list = r.strain || [];
+        const names = list.map((v) => Utl.lookup(EDDData.Strains, v).name || "--");
+        const uuids = list.map((v) => Utl.lookup(EDDData.Strains, v).registry_id || "");
+        return [names.join(", "), uuids.join(",")];
+    });
     const fields: { [name: string]: Forms.IFormField<any> } = {
         "name": new Forms.Field(lineModal.find("[name=line-name]"), "name"),
         "description": new Forms.Field(

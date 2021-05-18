@@ -30,6 +30,34 @@ def create_fake_upload():
     return fake_upload
 
 
+def create_fake_exportable_study(
+    study,
+    *,  # force everything else to kwargs-only
+    assays_count=3,
+    lines_count=10,
+    time_value=12,
+    types_count=3,
+):
+    """Populates a Study object with fake data for exports."""
+    protocol = ProtocolFactory()
+    mtypes = [MeasurementTypeFactory() for _i in range(types_count)]
+    x_unit = UnitFactory()
+    y_unit = UnitFactory()
+    for _i in range(lines_count):
+        line = LineFactory(study=study)
+        for _j in range(assays_count):
+            assay = AssayFactory(line=line, protocol=protocol)
+            for t in mtypes:
+                measurement = MeasurementFactory(
+                    assay=assay, measurement_type=t, x_units=x_unit, y_units=y_unit,
+                )
+                ValueFactory(
+                    measurement=measurement,
+                    x=[time_value],  # keep everything same "time"
+                    y=[fake.pyint()],
+                )
+
+
 class StudyFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.Study
@@ -160,3 +188,11 @@ class MetadataTypeFactory(factory.django.DjangoModelFactory):
     for_context = factory.Iterator(
         (models.MetadataType.STUDY, models.MetadataType.LINE, models.MetadataType.ASSAY)
     )
+
+
+class StrainFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.Strain
+
+    registry_id = factory.Faker("uuid4")
+    registry_url = factory.Faker("url")

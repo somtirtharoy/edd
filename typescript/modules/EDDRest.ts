@@ -11,6 +11,7 @@ export const LINE_CONTACT_META_UUID = "13672c8a-2a36-43ed-928f-7d63a1a4bd51";
 export const LINE_DESCRIPTION_META_UUID = "5fe84549-9a97-47d2-a897-8c18dd8fd34a";
 export const LINE_EXPERIMENTER_META_UUID = "974c3367-f0c5-461d-bd85-37c1a269d49e";
 export const LINE_NAME_META_UUID = "b388bcaa-d14b-4d7f-945e-a6fcb60142f2";
+export const LINE_REPLICATE_META_UUID = "71f5cd94-4dd4-45ca-a926-9f0717631799";
 export const LINE_STRAINS_META_UUID = "292f1ca7-30de-4ba1-89cd-87d2f6291416";
 
 const ASSAY_DESCRIPTION_META_UUID = "4929a6ad-370c-48c6-941f-6cd154162315";
@@ -179,7 +180,7 @@ export function loadMeasurementTypes(options: MTypeOptions): void {
     let receivedSoFar = options.received_so_far || [];
 
     // query the REST API for requested metadata types
-    jQuery.ajax("/rest/measurement_types/", {
+    jQuery.ajax("/rest/types/", {
         "dataType": "json",
         "data": queryParams,
         "success": function (responseJson) {
@@ -237,7 +238,7 @@ export function loadMeasurementUnits(options: UnitOptions): void {
     insertSortOrderParam(options, queryParams);
     let receivedSoFar = options.received_so_far || [];
     // query the REST API for requested metadata types
-    jQuery.ajax("/rest/measurement_units/", {
+    jQuery.ajax("/rest/units/", {
         "dataType": "json",
         "data": queryParams,
         "success": function (responseJson) {

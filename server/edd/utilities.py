@@ -11,10 +11,9 @@ from dateutil import parser as date_parser
 from django.conf import settings
 from django.contrib.staticfiles import storage
 from django.core.exceptions import ValidationError
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.translation import gettext as _
-from kombu.serialization import register
 from storages.backends import s3boto3
 
 DATETIME = "__datetime__"
@@ -38,6 +37,7 @@ class JSONEncoder(json.JSONEncoder):
      * datetime.datetime
      * decimal.Decimal
      * uuid.UUID
+     * set
     """
 
     def default(self, o):
@@ -48,7 +48,9 @@ class JSONEncoder(json.JSONEncoder):
         elif isinstance(o, (date, datetime)):
             return {TYPE: DATETIME, VALUE: o.isoformat()}
         elif isinstance(o, Promise):
-            return force_text(o)
+            return force_str(o)
+        elif isinstance(o, set):
+            return list(o)
         return super().default(o)
 
     @staticmethod
@@ -108,16 +110,6 @@ class StaticFilesStorage(storage.ManifestStaticFilesStorage):
     """
 
     manifest_name = getattr(settings, "STATICFILES_MANIFEST", "staticfiles.json")
-
-
-# register serializers for JSON that handle UUIDs and datetime objects
-register(
-    name=getattr(settings, "EDD_SERIALIZE_NAME", "edd-json"),
-    encoder=JSONEncoder.dumps,
-    decoder=JSONDecoder.loads,
-    content_type="application/x-edd-json",
-    content_encoding="UTF-8",
-)
 
 
 class LBNLTemplate2Validator:

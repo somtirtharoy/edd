@@ -7,7 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.http import Http404
 from django.http.request import HttpRequest
 from django.urls import reverse
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from faker import Faker
 from requests import codes
 
@@ -125,15 +125,9 @@ class StudyViewTestCase(TestCase):
 
 
 class StudyAttachmentViewTests(StudyViewTestCase):
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-        cls.filename = "ImportData_FBA_HPLC.xlsx"
-        cls.url = reverse("main:overview", kwargs={"slug": cls.target_study.slug})
-
     def setUp(self):
         super().setUp()
-        upload_attachment(self.client, self.target_study, self.filename)
+        upload_attachment(self.client, self.target_study, "ImportData_FBA_HPLC.xlsx")
         self.attachment = self.target_study.attachments.first()
         kwargs = {
             "slug": self.target_study.slug,
@@ -601,7 +595,7 @@ class StudyDescriptionViewTests(StudyViewTestCase):
         }
         response = self.client.post(self.url, data=payload, follow=True)
         self.assertTemplateUsed(response, "main/study-lines.html")
-        self.assertContains(response, f"Added Line &#39;{name}&#39;")
+        self.assertContains(response, f"Added Line &#x27;{name}&#x27;")
         assert self.target_study.line_set.filter(name=name).exists()
 
     def test_lines_add_line_with_invalid_form(self):
@@ -1117,7 +1111,7 @@ class AjaxPermissionViewTests(TestCase):
         response = self.client.get(self.url)
         # response is empty array
         self.assertEqual(response.status_code, codes.ok)
-        self.assertJSONEqual(force_text(response.content), [])
+        self.assertJSONEqual(force_str(response.content), [])
 
     def test_head_permissions(self):
         self._set_permission(models.StudyPermission.READ)

@@ -1,13 +1,15 @@
 """
 Models and related classes for dealing with Update objects.
 """
+from contextlib import contextmanager
 
 import arrow
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
-from threadlocals.threadlocals import get_current_request
+from threadlocals.threadlocals import get_current_request, set_thread_variable
 
 from edd.fields import VarCharField
 
@@ -66,22 +68,53 @@ class Update(models.Model, EDDSerialize):
         return f"{time} by {self.mod_by}"
 
     @classmethod
-    def load_update(cls, user=None, path=None):
+    @contextmanager
+    def fake_request(cls, user=None, path=None):
         """
-        Sometimes there will be actions happening outside the context of a request; use this
-        factory to create an Update object in those cases.
-        :param user: the user responsible for the update; None will be replaced with the
-            system user.
-        :param path: the path added to the update; it would be a good idea to put e.g. the
-            script name and arguments here.
-        :return: an Update instance persisted to the database
+        Context manager sets up a fake request, with a reference to an Update
+        object as if created by Update.load_update().
+        """
+        try:
+            fake_request = HttpRequest()
+            fake_request.update_obj = cls.load_update(user=user, path=path)
+            set_thread_variable("request", fake_request)
+            yield
+        finally:
+            set_thread_variable("request", None)
+
+    @classmethod
+    def get_current_user(cls):
+        """
+        Inspect the threadlocal variable for the current request, and extract
+        the current user. If none is found, return the system user.
         """
         User = get_user_model()
+        request = get_current_request()
+        current = None
+        if request is not None:
+            current = request.user
+        if not isinstance(current, User):
+            # any None or AnonymousUser gets replaced with system user
+            return User.system_user()
+        return current
+
+    @classmethod
+    def load_update(cls, user=None, path=None):
+        """
+        Sometimes there will be actions happening outside the context of a
+        request; use this factory to create an Update object in those cases.
+
+        :param user: the user responsible for the update; None will be replaced
+            with the current request user, or the system user.
+        :param path: the path added to the update; it would be a good idea to
+            put e.g. the script name and arguments here.
+        :return: an Update instance persisted to the database
+        """
         request = get_current_request()
         if request is None:
             mod_by = user
             if mod_by is None:
-                mod_by = User.system_user()
+                mod_by = get_user_model().system_user()
             update = cls.objects.create(
                 mod_time=arrow.utcnow(), mod_by=mod_by, path=path, origin="localhost"
             )

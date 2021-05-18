@@ -93,7 +93,7 @@ docker stack deploy --with-registry-auth -c stack.yml "${PROJECT}"
 # wait for ice to finish coming up
 ICE_IS_UP="false"
 until [ "${ICE_IS_UP}" == "true" ]; do
-    ICE_SERVICE_ID="$(docker service ls -f "label=org.jbei.jenkins.edd.ice" -q)"
+    ICE_SERVICE_ID="$(docker service ls -f "label=org.jbei.jenkins.edd.ice" -f "label=com.docker.stack.namespace=${PROJECT}" -q)"
     if [ -z "${ICE_SERVICE_ID}" ]; then
         echo "Waiting for services to deploy"
         sleep 10
@@ -115,14 +115,17 @@ until [ "${ICE_IS_UP}" == "true" ]; do
 done
 
 # correct the default DATA_DIRECTORY
-# correct the default BLAST_INSTALL_DIR
+# add the default BLAST_INSTALL_DIR
 SQL=$(cat <<'EOM'
 UPDATE configuration
 SET value = '/usr/local/tomcat/data'
 WHERE key = 'DATA_DIRECTORY';
-UPDATE configuration
-SET value = '/usr/bin'
-WHERE key = 'BLAST_INSTALL_DIR';
+INSERT INTO configuration
+VALUES (
+    nextval('configuration_id_seq'),
+    'BLAST_INSTALL_DIR',
+    '/usr/bin'
+);
 EOM
 )
 # because deploy constraint, we know ice_db is on this host and we can exec in it
