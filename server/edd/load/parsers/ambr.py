@@ -10,8 +10,8 @@ from ..reporting import raise_errors
 from .core import (
     CsvParserMixin,
     ExcelParserMixin,
-    MultiSheetExcelParserMixin,
     MeasurementParseRecord,
+    MultiSheetExcelParserMixin,
     ParseResult,
     TableParser,
     _has_any_value,
@@ -19,18 +19,18 @@ from .core import (
 
 
 class AmbrExcelParser(MultiSheetExcelParserMixin):
-
     def _parse_row(self, cells_list, row_index):
 
         # for ambr each sheet has multiple measurement types so they need
-        # to be separated out before they can be passed individually to 
-        # _parse_rows 
-        for measurement_worksheet in self.process_ambr_data(bioreactor_name, master_worksheet):
+        # to be separated out before they can be passed individually to
+        # _parse_rows
+        for measurement_worksheet in self.process_ambr_data(
+            bioreactor_name, master_worksheet
+        ):
             return self._parse_rows(measurement_worksheet.iter_rows())
 
-
         # TODO: make sure that the decimation is passed as a parameter
-        if row_index % 10 == 0: 
+        if row_index % 10 == 0:
             # extract raw values from in-use cols in this row
             # Note: "Line Name" header is used for simplicity for most users, even though it may
             # actually match assay name during some imports....the difference should often be
@@ -72,7 +72,6 @@ class AmbrExcelParser(MultiSheetExcelParserMixin):
                 src_ids=(row_index + 1,),
             )
             self._measurements.append(m)
-
 
     def process_ambr_data(self, bioreactor_name, sheet):
 
@@ -139,7 +138,7 @@ class AmbrExcelParser(MultiSheetExcelParserMixin):
             reformatted_df = pd.DataFrame(data=reformatted_data)[order]
 
             # convert pandas dataframe to openpyxl worksheet
-            # NOTE: convert from dictionary to openpyxl worksheet 
+            # NOTE: convert from dictionary to openpyxl worksheet
             # so we dont have to go through pandas at all
             wb = Workbook()
             ws = wb.active
@@ -150,8 +149,6 @@ class AmbrExcelParser(MultiSheetExcelParserMixin):
 
             # yeilding each measurement type as a work sheet to be processed in the parse function
             yield ws
-
-
 
     # def parse(self, file):
     #     """
