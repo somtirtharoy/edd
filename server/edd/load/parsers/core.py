@@ -9,9 +9,11 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Sequence, Set, Tuple
 from uuid import UUID
 
+import pandas as pd
 from django.utils.translation import gettext_lazy as _
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.utils.cell import get_column_letter
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 from .. import exceptions, reporting
 
@@ -644,20 +646,42 @@ class ExcelParserMixin:
 class MultiSheetExcelParserMixin:
     def parse(self, file):
         """
-        Parses the input as an Excel workbook.
+        Parses the input as a Pandas dataframe and then
+        converts it into an Excel workbook.
 
         :param file: a file-like object
         :return: the ParseResult read from file, otherwise None
         :raises OSError: if the file can't be opened
         :raises EDDImportError: if the file format or content is bad
         """
-        wb = load_workbook(file, read_only=True, data_only=True)
-        logger.debug("In parse(). workbook has %d sheets" % len(wb.worksheets))
 
-        for worksheet in wb.worksheets:
-            return self._parse_rows(worksheet.iter_rows())
+        wb = pd.read_excel(file, sheet_name=None)
 
-    # NOTE: remove this
+        # for each worksheet in the workbook
+        for name, sheet in wb.items():
+            # for every two columns in the worksheet
+            # corresponding to each measurement type in the sheet
+            for i in range(0, int(sheet.shape[1]), 2):
+                two_cols = sheet[sheet.columns[i : i + 2]]
+
+                # dropping all nan columns in the worksheet
+                if not two_cols.dropna().empty:
+                    # using mapper to map data into the EDD import format
+                    # and convert in to a pandas dataframe
+                    mapper = MeasurementMapper(name, two_cols)
+
+                    # convert mapper.df into a openpyxl worksheet
+                    # and then call parse_rows with worksheet.iterrows()
+                    # NOTE: work on using openpyxl for the manipulation
+                    # in the mapper instead of pandas
+                    wb = Workbook()
+                    ws = wb.active
+                    for r in dataframe_to_rows(mapper.df, index=True, header=True):
+                        ws.append(r)
+
+                    # passing the rows in the worksheet for processing
+                    return self._parse_rows(ws.iter_rows())
+
     def _raw_cell_value(self, cell):
         """
         Gets the raw cell value in whatever format it was stored in the file.
@@ -670,6 +694,44 @@ class MultiSheetExcelParserMixin:
         if isinstance(val, str):
             return val.strip()
         return val
+
+
+class MeasurementMapper:
+
+    loa_name: str
+    mtype_name: str
+    data: List[List[numbers.Number]]
+    y_unit_name: str
+    df: pd.DataFrame
+
+    units = {
+        "Temperature": "°C",
+        "Stir speed": "rpm",
+        "pH": "n/a",
+        "Air flow": "lpm",
+        "DO": "% maximum measured",
+        "Volume": "mL",
+        "OUR": "mM/L/h",
+        "CER": "mM/L/h",
+        "RQ": "n/a",
+        "Feed#1 volume pumped": "mL",
+        "Antifoam volume pumped": "mL",
+        "Acid volume pumped": "mL",
+        "Base volume pumped": "mL",
+        "Volume - sampled": "mL",
+    }
+
+    def __init__(self, sheet_name, df):
+
+        loa_name = sheet_name
+        mtype_name = df[df.columns[1:2]].columns.values[0]
+        df["Line Name"] = loa_name
+        df.columns.values[0] = "Time"
+        df.columns.values[1] = "Value"
+
+        df["Measurement Type"] = mtype_name
+        df["Units"] = self.units[mtype_name]
+        self.df = df
 
 
 class CsvParserMixin:
