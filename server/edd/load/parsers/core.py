@@ -658,6 +658,8 @@ class MultiSheetExcelParserMixin:
         wb = pd.read_excel(file, sheet_name=None)
 
         # for each worksheet in the workbook
+        parsed_result = pd.DataFrame()
+
         for name, sheet in wb.items():
             # for every two columns in the worksheet
             # corresponding to each measurement type in the sheet
@@ -669,18 +671,19 @@ class MultiSheetExcelParserMixin:
                     # using mapper to map data into the EDD import format
                     # and convert in to a pandas dataframe
                     mapper = MeasurementMapper(name, two_cols)
+                    parsed_df = mapper.map_data()
+                    parsed_result = parsed_result.append(parsed_df)
 
-                    # convert mapper.df into a openpyxl worksheet
-                    # and then call parse_rows with worksheet.iterrows()
-                    # NOTE: work on using openpyxl for the manipulation
-                    # in the mapper instead of pandas
-                    wb = Workbook()
-                    ws = wb.active
-                    for r in dataframe_to_rows(mapper.df, index=True, header=True):
-                        ws.append(r)
+        # convert mapper.df into a openpyxl worksheet
+        # NOTE: work on using openpyxl for the manipulation
+        # in the mapper instead of pandas
+        wb = Workbook()
+        ws = wb.active
+        for r in dataframe_to_rows(parsed_result, index=True, header=True):
+            ws.append(r)
 
-                    # passing the rows in the worksheet for processing
-                    return self._parse_rows(ws.iter_rows())
+        # passing the rows in the worksheet for processing
+        return self._parse_rows(ws.iter_rows())
 
     def _raw_cell_value(self, cell):
         """
@@ -699,39 +702,43 @@ class MultiSheetExcelParserMixin:
 class MeasurementMapper:
 
     loa_name: str
-    mtype_name: str
-    data: List[List[numbers.Number]]
-    y_unit_name: str
+    parsed_df: pd.DataFrame
     df: pd.DataFrame
-
-    units = {
-        "Temperature": "°C",
-        "Stir speed": "rpm",
-        "pH": "n/a",
-        "Air flow": "lpm",
-        "DO": "% maximum measured",
-        "Volume": "mL",
-        "OUR": "mM/L/h",
-        "CER": "mM/L/h",
-        "RQ": "n/a",
-        "Feed#1 volume pumped": "mL",
-        "Antifoam volume pumped": "mL",
-        "Acid volume pumped": "mL",
-        "Base volume pumped": "mL",
-        "Volume - sampled": "mL",
-    }
+    units: Dict
 
     def __init__(self, sheet_name, df):
-
-        loa_name = sheet_name
-        mtype_name = df[df.columns[1:2]].columns.values[0]
-        df["Line Name"] = loa_name
-        df.columns.values[0] = "Time"
-        df.columns.values[1] = "Value"
-
-        df["Measurement Type"] = mtype_name
-        df["Units"] = self.units[mtype_name]
+        self.loa_name = sheet_name
         self.df = df
+        self.units = {
+            "Temperature": "°C",
+            "Stir speed": "rpm",
+            "pH": "n/a",
+            "Air flow": "lpm",
+            "DO": "% maximum measured",
+            "Volume": "mL",
+            "OUR": "mM/L/h",
+            "CER": "mM/L/h",
+            "RQ": "n/a",
+            "Feed#1 volume pumped": "mL",
+            "Antifoam volume pumped": "mL",
+            "Acid volume pumped": "mL",
+            "Base volume pumped": "mL",
+            "Volume - sampled": "mL",
+        }
+
+    def map_data(self):
+
+        mtype_name = self.df[self.df.columns[1:2]].columns.values[0]
+        self.df["Line Name"] = self.loa_name
+        self.df.columns.values[0] = "Time"
+        self.df.columns.values[1] = "Value"
+        self.df["Measurement Type"] = mtype_name
+        self.df["Units"] = self.units[mtype_name]
+        # dropping records with NaN values
+        self.df = self.df[self.df["Value"].notna()]
+        self.parsed_df = self.df
+
+        return self.parsed_df
 
 
 class CsvParserMixin:
