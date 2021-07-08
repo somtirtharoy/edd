@@ -1,21 +1,18 @@
 from uuid import uuid4
 
-import pytest
-
 from .. import exceptions, parsers, reporting
-from ..signals import warnings_reported
 from . import factory
 
 
 def test_AmbrExcelParser_success():
 
     path = ("ambr_export_test_data.xlsx",)
+    # path = ("ambr_big_data.xlsx",)
     parser = parsers.AmbrExcelParser(uuid4())
 
-    with factory.load_test_file(*path) as file:
+    with factory.load_test_file(path) as file:
         parsed = parser.parse(file)
-    print(parsed)
-    # verify_generic_parse_result(parsed)
+    # verify_parse_result(parsed)
 
 
 def test_GenericExcelParser_success():
@@ -30,8 +27,7 @@ def test_GenericExcelParser_success():
     # verify_generic_parse_result(parsed)
 
 
-def verify_generic_parse_result(parsed):
-    pass
+def verify_parse_result(parsed):
     # Utility method that compares parsed content from XLSX and CSV format files,
     # verifying that:
     #     A) the results are correct, and

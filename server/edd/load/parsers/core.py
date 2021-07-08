@@ -668,6 +668,8 @@ class MultiSheetExcelParserMixin:
 
                 # dropping all nan columns in the worksheet
                 if not two_cols.dropna().empty:
+                    # decimate the data
+                    two_cols = two_cols.iloc[::10, :]
                     # using mapper to map data into the EDD import format
                     # and convert in to a pandas dataframe
                     mapper = MeasurementMapper(name, two_cols)
@@ -682,7 +684,8 @@ class MultiSheetExcelParserMixin:
         for r in dataframe_to_rows(parsed_result, index=True, header=True):
             ws.append(r)
 
-        # passing the rows in the worksheet for processing
+        # passing the rows in the worksheet for verification
+        # and processing in database
         return self._parse_rows(ws.iter_rows())
 
     def _raw_cell_value(self, cell):
@@ -724,7 +727,11 @@ class MeasurementMapper:
             "Acid volume pumped": "mL",
             "Base volume pumped": "mL",
             "Volume - sampled": "mL",
+            "Volume of inocula": "mL",
         }
+        # NOTE: Measurement types do not exist in EDD:
+        # Volume - sampled, Volume of inocula, DO, Feed#1 volume pumped
+        # Unsupported units: mM/L/h, rpm, % maximum measured, °C
 
     def map_data(self):
 

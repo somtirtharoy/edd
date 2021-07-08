@@ -273,8 +273,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 # Use the Docker image version hash to distinguish static asset manifest(s)
-# with open("/edd.hash") as f:
-EDD_VERSION_HASH = 1287461
+with open("/edd.hash") as f:
+    EDD_VERSION_HASH = f.read().strip()
 STATIC_ROOT = "/var/www/static"
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [
