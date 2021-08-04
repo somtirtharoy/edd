@@ -1,30 +1,17 @@
 from uuid import uuid4
 
-from .. import exceptions, parsers, reporting
+from .. import parsers
 from . import factory
 
 
 def test_AmbrExcelParser_success():
 
-    path = ("ambr_export_test_data.xlsx",)
-    # path = ("ambr_big_data.xlsx",)
+    path = "ambr_export_test_data.xlsx"
     parser = parsers.AmbrExcelParser(uuid4())
 
     with factory.load_test_file(path) as file:
         parsed = parser.parse(file)
-    # verify_parse_result(parsed)
-
-
-def test_GenericExcelParser_success():
-
-    path = ("generic_import.xlsx",)
-    parser = parsers.GenericExcelParser(uuid4())
-
-    with factory.load_test_file(*path) as file:
-        parsed = parser.parse(file)
-
-    print(parsed)
-    # verify_generic_parse_result(parsed)
+    verify_parse_result(parsed)
 
 
 def verify_parse_result(parsed):
@@ -35,27 +22,55 @@ def verify_parse_result(parsed):
 
     # verify that expected values were parsed
     assert parsed is not None
-    assert parsed.line_or_assay_names == {"A", "B"}
-    assert parsed.mtypes == {"CID:440917", "CID:5288798"}
+    assert parsed.line_or_assay_names == {"Sheet1", "Sheet2"}
+    assert parsed.mtypes == {"CER", "Air flow", "DO"}
     record_count = len(parsed.series_data)
-    assert record_count == 2
+    assert record_count == 6
     assert parsed.any_time is True
     assert parsed.has_all_times is True
     assert parsed.record_src == "row"
-    assert parsed.units == {"g/L", "hours"}
+    assert parsed.units == {"hours", "mM/L/h", "% maximum measured", "lpm"}
     # drill down and verify that ParseRecords were created as expected
-    assert len(parsed.series_data) == 2
-    first = parsed.series_data[0]
-    assert first.loa_name == "A"
-    assert first.mtype_name == "CID:440917"
-    assert first.y_unit_name == "g/L"
-    assert first.x_unit_name == "hours"
-    assert first.value_format == "0"
-    assert first.data == [[8], [1]]
-    second = parsed.series_data[1]
-    assert second.loa_name == "B"
-    assert second.mtype_name == "CID:5288798"
-    assert second.y_unit_name == "g/L"
-    assert second.x_unit_name == "hours"
-    assert second.value_format == "0"
-    assert second.data == [[24], [2]]
+    assert len(parsed.series_data) == 6
+    mes_parse_record = parsed.series_data[0]
+    assert mes_parse_record.loa_name == "Sheet1"
+    assert mes_parse_record.mtype_name == "Air flow"
+    assert mes_parse_record.y_unit_name == "lpm"
+    assert mes_parse_record.x_unit_name == "hours"
+    assert mes_parse_record.value_format == "0"
+    assert mes_parse_record.data == [[0.00133676594444444], [75.0770034790039]]
+    mes_parse_record = parsed.series_data[1]
+    assert mes_parse_record.loa_name == "Sheet1"
+    assert mes_parse_record.mtype_name == "CER"
+    assert mes_parse_record.y_unit_name == "mM/L/h"
+    assert mes_parse_record.x_unit_name == "hours"
+    assert mes_parse_record.value_format == "0"
+    assert mes_parse_record.data == [[0.00133676594444444], [0.162894560296047]]
+    mes_parse_record = parsed.series_data[2]
+    assert mes_parse_record.loa_name == "Sheet1"
+    assert mes_parse_record.mtype_name == "DO"
+    assert mes_parse_record.y_unit_name == "% maximum measured"
+    assert mes_parse_record.x_unit_name == "hours"
+    assert mes_parse_record.value_format == "0"
+    assert mes_parse_record.data == [[0.00133676594444444], [99.5141229062182]]
+    mes_parse_record = parsed.series_data[3]
+    assert mes_parse_record.loa_name == "Sheet2"
+    assert mes_parse_record.mtype_name == "Air flow"
+    assert mes_parse_record.y_unit_name == "lpm"
+    assert mes_parse_record.x_unit_name == "hours"
+    assert mes_parse_record.value_format == "0"
+    assert mes_parse_record.data == [[0.00332820980555556], [74.7689971923828]]
+    mes_parse_record = parsed.series_data[4]
+    assert mes_parse_record.loa_name == "Sheet2"
+    assert mes_parse_record.mtype_name == "CER"
+    assert mes_parse_record.y_unit_name == "mM/L/h"
+    assert mes_parse_record.x_unit_name == "hours"
+    assert mes_parse_record.value_format == "0"
+    assert mes_parse_record.data == [[0.00332820980555556], [0.0949098408436696]]
+    mes_parse_record = parsed.series_data[5]
+    assert mes_parse_record.loa_name == "Sheet2"
+    assert mes_parse_record.mtype_name == "DO"
+    assert mes_parse_record.y_unit_name == "% maximum measured"
+    assert mes_parse_record.x_unit_name == "hours"
+    assert mes_parse_record.value_format == "0"
+    assert mes_parse_record.data == [[0.00332820980555556], [100.187744527793]]
