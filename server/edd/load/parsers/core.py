@@ -729,6 +729,11 @@ class MeasurementMapper:
             "Volume - sampled": "mL",
             "Volume of inocula": "mL",
         }
+        self.mtypes = {
+            "DO": "Dissolved Oxygen",
+            "Feed#1 volume pumped": "Feed volume pumped",
+            "Volume - sampled": "Volume sampled",
+        }
         # NOTE: Measurement types do not exist in EDD:
         # Volume - sampled, Volume of inocula, DO, Feed#1 volume pumped
         # Unsupported units: mM/L/h, rpm, % maximum measured, °C
@@ -739,7 +744,13 @@ class MeasurementMapper:
         self.df["Line Name"] = self.loa_name
         self.df.columns.values[0] = "Time"
         self.df.columns.values[1] = "Value"
-        self.df["Measurement Type"] = mtype_name
+
+        # check measurement type to rename for EDD
+        if mtype_name in self.mtypes.keys():
+            self.df["Measurement Type"] = self.mtypes[mtype_name]
+        else:
+            self.df["Measurement Type"] = mtype_name
+
         self.df["Units"] = self.units[mtype_name]
         # dropping records with NaN values
         self.df = self.df[self.df["Value"].notna()]
