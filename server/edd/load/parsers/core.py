@@ -666,7 +666,8 @@ class MultiSheetExcelParserMixin:
             for i in range(0, int(sheet.shape[1]), 2):
                 two_cols = sheet[sheet.columns[i : i + 2]]
 
-                # dropping all nan columns in the worksheet
+                # dropping all rows with nan values in the worksheet
+                two_cols = two_cols.dropna()
                 if not two_cols.dropna().empty:
                     # decimate the data
                     two_cols = two_cols.iloc[::10, :]
